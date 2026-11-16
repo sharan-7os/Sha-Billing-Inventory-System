@@ -722,6 +722,9 @@ class _BillingPosViewState extends State<BillingPosView> {
         (totalStock - item.quantity).clamp(0, totalStock);
     final bool reachedMax = item.quantity >= totalStock;
 
+    final double unitPriceWithTax =
+        item.unitPrice * (1.0 + (item.gstRate / 100.0));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -729,47 +732,87 @@ class _BillingPosViewState extends State<BillingPosView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.productName,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+              child: InkWell(
+                onTap: () =>
+                    _showEditCartItemDialog(context, state, item, idx),
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.productName,
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.edit_outlined,
+                                    size: 13, color: Colors.blue.shade600),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'HSN: ${item.hsnCode} • GST: ${item.gstRate.toInt()}% • Stock: $totalStock ($remainingAfter left)',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: remainingAfter == 0
+                                    ? Colors.orange.shade800
+                                    : Colors.grey.shade600,
+                                fontWeight: remainingAfter == 0
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'HSN: ${item.hsnCode} • GST: ${item.gstRate.toInt()}% • Stock: $totalStock ($remainingAfter left)',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: remainingAfter == 0
-                          ? Colors.orange.shade800
-                          : Colors.grey.shade600,
-                      fontWeight: remainingAfter == 0
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.close_rounded,
-                  size: 16, color: Colors.grey.shade400),
-              onPressed: () => state.removeFromCart(idx),
-              tooltip: 'Remove',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit_note,
+                      size: 18, color: Colors.blue.shade700),
+                  onPressed: () =>
+                      _showEditCartItemDialog(context, state, item, idx),
+                  tooltip: 'Edit Title & Price',
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(Icons.close_rounded,
+                      size: 16, color: Colors.grey.shade400),
+                  onPressed: () => state.removeFromCart(idx),
+                  tooltip: 'Remove',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 8),
 
-        // Controls row: Qty Stepper, Discount, and Total
+        // Controls row: Qty Stepper, Rate Badge (clickable to edit), IMEI button, and Line Total
         Row(
           children: [
             // Stepper
@@ -823,7 +866,39 @@ class _BillingPosViewState extends State<BillingPosView> {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+
+            // Rate Badge (clickable to edit title & price)
+            InkWell(
+              onTap: () => _showEditCartItemDialog(context, state, item, idx),
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                  border:
+                      Border.all(color: Colors.blue.shade200, width: 0.8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '₹ ${unitPriceWithTax.toStringAsFixed(2)} / ${item.unit}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(Icons.edit, size: 10, color: Colors.blue.shade700),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
 
             // S/N / IMEI button
             InkWell(
@@ -1227,6 +1302,300 @@ class _BillingPosViewState extends State<BillingPosView> {
             child: const Text('Save Serials'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditCartItemDialog(
+    BuildContext context,
+    AppState state,
+    InvoiceItem item,
+    int itemIdx,
+  ) {
+    final titleCtrl = TextEditingController(text: item.productName);
+    final double initialUnitSellingPriceWithTax =
+        item.unitPrice * (1.0 + (item.gstRate / 100.0));
+    final priceCtrl = TextEditingController(
+        text: initialUnitSellingPriceWithTax.toStringAsFixed(2));
+    bool isPriceTaxInclusive = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          final enteredPrice = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
+          double computedBaseRate;
+          double computedTaxPerUnit;
+          double computedFinalUnitRate;
+
+          if (isPriceTaxInclusive) {
+            computedFinalUnitRate = enteredPrice;
+            computedBaseRate = item.gstRate > 0
+                ? computedFinalUnitRate / (1.0 + (item.gstRate / 100.0))
+                : computedFinalUnitRate;
+            computedTaxPerUnit = computedFinalUnitRate - computedBaseRate;
+          } else {
+            computedBaseRate = enteredPrice;
+            computedTaxPerUnit = computedBaseRate * (item.gstRate / 100.0);
+            computedFinalUnitRate = computedBaseRate + computedTaxPerUnit;
+          }
+
+          final lineTotal = computedFinalUnitRate * item.quantity;
+          final bool isValid =
+              titleCtrl.text.trim().isNotEmpty && enteredPrice > 0;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit_note,
+                      color: Color(0xFF2563EB), size: 22),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Edit Product in Bill',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product Title / Description
+                    const Text(
+                      'Product Title / Custom Description *',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: titleCtrl,
+                      onChanged: (_) => setDlgState(() {}),
+                      decoration: const InputDecoration(
+                        hintText: 'Enter title (e.g. Paint shade, dimensions)',
+                        prefixIcon: Icon(Icons.title, size: 18),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Price Mode Toggle
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Unit Price *',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            ChoiceChip(
+                              label: const Text('Price incl. GST (MRP)',
+                                  style: TextStyle(fontSize: 11)),
+                              selected: isPriceTaxInclusive,
+                              onSelected: (val) {
+                                setDlgState(() {
+                                  isPriceTaxInclusive = true;
+                                  priceCtrl.text = computedFinalUnitRate
+                                      .toStringAsFixed(2);
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: const Text('Base Rate (excl. GST)',
+                                  style: TextStyle(fontSize: 11)),
+                              selected: !isPriceTaxInclusive,
+                              onSelected: (val) {
+                                setDlgState(() {
+                                  isPriceTaxInclusive = false;
+                                  priceCtrl.text =
+                                      computedBaseRate.toStringAsFixed(2);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: priceCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      onChanged: (_) => setDlgState(() {}),
+                      decoration: InputDecoration(
+                        labelText: isPriceTaxInclusive
+                            ? 'Selling Price per ${item.unit} (incl. ${item.gstRate.toInt()}% GST) *'
+                            : 'Base Price per ${item.unit} (excl. GST) *',
+                        prefixText: '₹ ',
+                        prefixIcon:
+                            const Icon(Icons.currency_rupee, size: 18),
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Live Computation Breakdown Card
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade100),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Base Rate per ${item.unit}:',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade700),
+                              ),
+                              Text(
+                                '₹ ${computedBaseRate.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'GST (${item.gstRate.toInt()}%):',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade700),
+                              ),
+                              Text(
+                                '₹ ${computedTaxPerUnit.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Final Rate per ${item.unit}:',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade700),
+                              ),
+                              Text(
+                                '₹ ${computedFinalUnitRate.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 12),
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Line Total (${item.quantity} ${item.unit}):',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                '₹ ${lineTotal.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                ),
+                onPressed: isValid
+                    ? () {
+                        final newBaseRate = double.parse(
+                            computedBaseRate.toStringAsFixed(2));
+                        state.updateCartItemTitleAndPrice(
+                          itemIdx,
+                          title: titleCtrl.text.trim(),
+                          unitPrice: newBaseRate,
+                        );
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Updated "${titleCtrl.text.trim()}" in bill (₹${computedFinalUnitRate.toStringAsFixed(2)}/${item.unit})'),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
+                      }
+                    : null,
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Save & Update Bill'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

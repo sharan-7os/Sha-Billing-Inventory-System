@@ -230,6 +230,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void updateCartItemTitleAndPrice(
+    int index, {
+    required String title,
+    required double unitPrice,
+  }) {
+    if (index >= 0 && index < _cart.length) {
+      if (title.trim().isNotEmpty) {
+        _cart[index].productName = title.trim();
+      }
+      if (unitPrice >= 0) {
+        _cart[index].unitPrice = unitPrice;
+      }
+      notifyListeners();
+    }
+  }
+
   void updateCartItemSerials(int index, List<String> serials) {
     if (index >= 0 && index < _cart.length) {
       _cart[index].serialNumbers = serials;
