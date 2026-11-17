@@ -1,7 +1,9 @@
 class Product {
   String id;
   String name;
-  String barcode; // Barcode or SKU
+  String barcode; // Product Code / SKU
+  String get productCode => barcode;
+  set productCode(String val) => barcode = val;
   String category;
   String brand;
   String hsnCode;
@@ -45,6 +47,7 @@ class Product {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'productCode': barcode,
         'barcode': barcode,
         'category': category,
         'brand': brand,
@@ -64,7 +67,7 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) => Product(
         id: json['id'],
         name: json['name'],
-        barcode: json['barcode'] ?? '',
+        barcode: json['productCode'] ?? json['barcode'] ?? '',
         category: json['category'] ?? 'General',
         brand: json['brand'] ?? 'Generic',
         hsnCode: json['hsnCode'] ?? '8517',

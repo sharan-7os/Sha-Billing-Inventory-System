@@ -1,7 +1,9 @@
 class InvoiceItem {
   String productId;
   String productName;
-  String barcode;
+  String barcode; // Product Code
+  String get productCode => barcode;
+  set productCode(String val) => barcode = val;
   String hsnCode;
   int quantity;
   String unit;
@@ -40,6 +42,7 @@ class InvoiceItem {
   Map<String, dynamic> toJson() => {
         'productId': productId,
         'productName': productName,
+        'productCode': barcode,
         'barcode': barcode,
         'hsnCode': hsnCode,
         'quantity': quantity,
@@ -54,7 +57,7 @@ class InvoiceItem {
   factory InvoiceItem.fromJson(Map<String, dynamic> json) => InvoiceItem(
         productId: json['productId'],
         productName: json['productName'],
-        barcode: json['barcode'] ?? '',
+        barcode: json['productCode'] ?? json['barcode'] ?? '',
         hsnCode: json['hsnCode'] ?? '8517',
         quantity: (json['quantity'] as num).toInt(),
         unit: json['unit'] ?? 'Pcs',

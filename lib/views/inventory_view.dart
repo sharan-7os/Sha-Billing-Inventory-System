@@ -126,7 +126,7 @@ class _InventoryViewState extends State<InventoryView> {
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText:
-                          'Search product name, brand, SKU or HSN code...',
+                          'Search product name, product code, brand, or HSN code...',
                       prefixIcon: const Icon(Icons.search, size: 20),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
@@ -243,7 +243,7 @@ class _InventoryViewState extends State<InventoryView> {
                               decoration:
                                   BoxDecoration(color: Colors.grey.shade100),
                               children: [
-                                _buildTh('SKU / Barcode'),
+                                _buildTh('Product Code'),
                                 _buildTh('Product Description'),
                                 _buildTh('Category'),
                                 _buildTh('HSN'),
@@ -261,8 +261,32 @@ class _InventoryViewState extends State<InventoryView> {
 
                               return TableRow(
                                 children: [
-                                  _buildTd(p.barcode,
-                                      color: Colors.grey.shade700),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 12),
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 7, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade50,
+                                        borderRadius:
+                                            BorderRadius.circular(4),
+                                        border: Border.all(
+                                            color: Colors.blueGrey.shade200,
+                                            width: 0.8),
+                                      ),
+                                      child: Text(
+                                        p.barcode,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'monospace',
+                                          color: Colors.blueGrey.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 14, vertical: 12),
@@ -750,9 +774,33 @@ class _InventoryViewState extends State<InventoryView> {
     final brandCtrl = TextEditingController(text: product?.brand ?? '');
     String selectedCategory = product?.category ?? 'Paint';
 
-    final barcodeCtrl = TextEditingController(
-        text: product?.barcode ??
-            DateTime.now().millisecondsSinceEpoch.toString().substring(4));
+    String generateDefaultProductCode(String category) {
+      String prefix;
+      switch (category.toLowerCase()) {
+        case 'paint':
+          prefix = 'PNT';
+          break;
+        case 'electrical':
+          prefix = 'ELE';
+          break;
+        case 'hardware':
+          prefix = 'HDW';
+          break;
+        case 'plumbing':
+          prefix = 'PLM';
+          break;
+        default:
+          prefix = 'PRD';
+      }
+      final count = state.products
+              .where((p) => p.category.toLowerCase() == category.toLowerCase())
+              .length +
+          1;
+      return '$prefix-${count.toString().padLeft(3, '0')}';
+    }
+
+    final productCodeCtrl = TextEditingController(
+        text: product?.barcode ?? generateDefaultProductCode(selectedCategory));
     final hsnCtrl = TextEditingController(
         text: product?.hsnCode ?? (selectedCategory == 'Paint' ? '320890' : '853690'));
     final costCtrl =
@@ -835,6 +883,19 @@ class _InventoryViewState extends State<InventoryView> {
                               onTap: () {
                                 setDlgState(() {
                                   selectedCategory = cat;
+                                  // Update suggested product code if not customized
+                                  if (!isEditing) {
+                                    final cur = productCodeCtrl.text.trim();
+                                    if (cur.isEmpty ||
+                                        cur.startsWith('PNT-') ||
+                                        cur.startsWith('ELE-') ||
+                                        cur.startsWith('HDW-') ||
+                                        cur.startsWith('PLM-') ||
+                                        cur.startsWith('PRD-')) {
+                                      productCodeCtrl.text =
+                                          generateDefaultProductCode(cat);
+                                    }
+                                  }
                                   // Update sensible HSN and Unit defaults if empty
                                   if (cat == 'Paint') {
                                     if (hsnCtrl.text.isEmpty || hsnCtrl.text.startsWith('85') || hsnCtrl.text.startsWith('73') || hsnCtrl.text.startsWith('39')) {
@@ -956,16 +1017,19 @@ class _InventoryViewState extends State<InventoryView> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Row 2: Barcode & HSN
+                    // Row 2: Product Code & HSN
                     Row(
                       children: [
                         Expanded(
                           child: TextField(
-                            controller: barcodeCtrl,
+                            controller: productCodeCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Barcode / SKU *',
+                              labelText: 'Product Code *',
+                              hintText: 'e.g. PNT-001, ELE-102, HDW-05',
+                              prefixIcon: Icon(Icons.tag_rounded, size: 18),
                               border: OutlineInputBorder(),
                               isDense: true,
+                              helperText: 'Unique shop item/product code',
                             ),
                           ),
                         ),
@@ -1287,7 +1351,9 @@ class _InventoryViewState extends State<InventoryView> {
                         ? 'Generic'
                         : brandCtrl.text.trim(),
                     category: selectedCategory,
-                    barcode: barcodeCtrl.text.trim(),
+                    barcode: productCodeCtrl.text.trim().isEmpty
+                        ? generateDefaultProductCode(selectedCategory)
+                        : productCodeCtrl.text.trim(),
                     hsnCode: hsnCtrl.text.trim().isEmpty
                         ? '853690'
                         : hsnCtrl.text.trim(),

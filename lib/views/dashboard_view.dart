@@ -267,7 +267,7 @@ class DashboardView extends StatelessWidget {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               Text(
-                                                'Brand: ${p.brand} • SKU: ${p.barcode}',
+                                                'Brand: ${p.brand} • Code: ${p.barcode}',
                                                 style: TextStyle(
                                                   color: Colors.grey.shade500,
                                                   fontSize: 11,

@@ -148,7 +148,7 @@ class _BillingPosViewState extends State<BillingPosView> {
                                 },
                                 decoration: InputDecoration(
                                   hintText:
-                                      'Scan Barcode or Search by Name, Brand, SKU (F1)...',
+                                      'Search by Product Name, Product Code, Brand, or HSN (F1)...',
                                   prefixIcon: const Icon(Icons.search_rounded),
                                   suffixIcon: _searchQuery.isNotEmpty
                                       ? IconButton(
@@ -412,7 +412,7 @@ class _BillingPosViewState extends State<BillingPosView> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Click any product or scan barcode to add',
+                                      'Click any product or enter Product Code to add',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade400,
@@ -607,7 +607,7 @@ class _BillingPosViewState extends State<BillingPosView> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${p.brand} • HSN: ${p.hsnCode}',
+                  'Code: ${p.barcode} • ${p.brand} • HSN: ${p.hsnCode}',
                   style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
                 ),
                 const Spacer(),
@@ -766,7 +766,7 @@ class _BillingPosViewState extends State<BillingPosView> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'HSN: ${item.hsnCode} • GST: ${item.gstRate.toInt()}% • Stock: $totalStock ($remainingAfter left)',
+                              'Code: ${item.barcode} • HSN: ${item.hsnCode} • GST: ${item.gstRate.toInt()}% • Stock: $totalStock ($remainingAfter left)',
                               style: TextStyle(
                                 fontSize: 10.5,
                                 color: remainingAfter == 0
@@ -1376,13 +1376,37 @@ class _BillingPosViewState extends State<BillingPosView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Product Title / Description
-                    const Text(
-                      'Product Title / Custom Description *',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Product Title / Custom Description *',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: Colors.blueGrey.shade200, width: 0.8),
+                          ),
+                          child: Text(
+                            'Code: ${item.barcode}',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                              color: Colors.blueGrey.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     TextField(
